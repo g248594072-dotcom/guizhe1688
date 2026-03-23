@@ -2238,21 +2238,51 @@ ${maintext}
       throw new Error('未能生成有效的 <UpdateVariable> 内容');
     }
 
-    // 仅构建“待提交”的新消息（先不写回；弹窗确认后才应用）
+    // 直接应用变量更新（像“重试额外模型解析”一样，不需要弹窗确认）
+    console.log('🔄 [App] 直接应用变量更新到楼层:', info.messageId);
+
     const withoutOld = filtered.replace(/<UpdateVariable>[\s\S]*?<\/UpdateVariable>\s*/gi, '').trim();
     const updatedMessage = `${withoutOld}\n\n<UpdateVariable>\n${updateVariable.trim()}\n</UpdateVariable>`;
 
-    pendingVariableReroll.value = {
-      messageId: info.messageId,
-      filteredMessage: filtered,
-      baseData,
-      updatedMessage,
-    };
+    // 使用 MVU 方式直接更新变量数据（不修改消息内容，避免楼层重新渲染）
+    try {
+      await waitGlobalInitialized('Mvu');
+      const base = baseData ?? Mvu.getMvuData({ type: 'message', message_id: Math.max(info.messageId - 1, 0) });
 
-    // 打开预览弹窗，并允许编辑 patch（只展示标签内部内容）
-    variableRerollPatchText.value = updateVariable.trim();
-    variableRerollDialogOpen.value = true;
-    toastr.info('已生成变量更新，请确认应用');
+      console.log('🔄 [App] 使用 Mvu.parseMessage 解析变量更新...');
+      const parsed = (typeof Mvu?.parseMessage === 'function')
+        ? await Mvu.parseMessage(updatedMessage, base)
+        : null;
+
+      if (parsed) {
+        console.log('✅ [App] MVU 解析成功，准备使用 replaceMvuData 写回变量...');
+        // 关键：使用 Mvu.replaceMvuData 直接替换变量数据，不修改消息内容
+        await Mvu.replaceMvuData(parsed, { type: 'message', message_id: info.messageId });
+        console.log('✅ [App] 变量已通过 Mvu.replaceMvuData 应用到楼层:', info.messageId);
+      } else {
+        console.warn('⚠️ [App] MVU 解析返回空，跳过写回变量');
+      }
+    } catch (e) {
+      console.warn('⚠️ [App] MVU 方式更新变量失败，尝试降级到 replaceVariables:', e);
+      // 降级方案：使用 replaceVariables
+      try {
+        await waitGlobalInitialized('Mvu');
+        const base = baseData ?? Mvu.getMvuData({ type: 'message', message_id: Math.max(info.messageId - 1, 0) });
+        const parsed = await Mvu.parseMessage(updatedMessage, base);
+        if (parsed) {
+          await replaceVariables(parsed, { type: 'message', message_id: info.messageId });
+          console.log('✅ [App] 变量已通过 replaceVariables 降级方案应用到楼层');
+        }
+      } catch (e2) {
+        console.error('❌ [App] 降级方案也失败:', e2);
+        throw e2;
+      }
+    }
+
+    // 轻量级刷新界面
+    currentMessageId.value = undefined;
+    await loadMessageContent();
+    toastr.success('变量已更新（重试额外模型解析）');
   } catch (error) {
     console.error('❌ [App] 单独重roll变量失败:', error);
     toastr.error('单独重roll变量失败: ' + String(error));
