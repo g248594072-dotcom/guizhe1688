@@ -3554,6 +3554,703 @@ defineExpose({
   }
 }
 
+// ===== 响应式适配 =====
+
+/* 大屏幕适配 (1400px 以下) */
+@media (max-width: 1400px) {
+  .book-container {
+    max-width: 1200px;
+    height: 88vh;
+  }
+
+  .cover-page {
+    gap: 24px;
+    padding: 40px 32px 32px;
+  }
+
+  .center-card {
+    width: 340px;
+    height: 380px;
+
+    .card-content {
+      .book-icon {
+        font-size: 56px;
+      }
+
+      .book-title {
+        font-size: 36px;
+      }
+    }
+  }
+}
+
+/* 中等屏幕适配 (1200px 以下) */
+@media (max-width: 1200px) {
+  .book-container {
+    max-width: 1000px;
+    height: 90vh;
+    max-height: 800px;
+  }
+
+  .cover-page {
+    grid-template-columns: 1fr 360px 1fr;
+    gap: 20px;
+    padding: 36px 28px 28px;
+  }
+
+  .center-card {
+    width: 320px;
+    height: 360px;
+
+    .card-content {
+      .book-icon-wrapper {
+        margin-bottom: 24px;
+      }
+
+      .book-icon {
+        font-size: 52px;
+      }
+
+      .book-title {
+        font-size: 32px;
+      }
+
+      .book-subtitle {
+        font-size: 11px;
+        margin-bottom: 24px;
+      }
+
+      .book-desc {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .start-btn-wrapper {
+    margin-top: 32px;
+
+    .start-btn {
+      padding: 14px 36px;
+      font-size: 15px;
+    }
+  }
+
+  .system-status-panel,
+  .event-logs-panel {
+    max-width: 280px;
+  }
+}
+
+/* 平板和小屏幕适配 (1024px 以下) */
+@media (max-width: 1024px) {
+  .opening-form {
+    padding: 20px;
+  }
+
+  .book-container {
+    max-width: 100%;
+    height: 92vh;
+    max-height: none;
+    border-radius: 24px;
+  }
+
+  // 封面页改为上下布局
+  .cover-page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    gap: 24px;
+    padding: 32px 24px 24px;
+    overflow-y: auto;
+
+    // 隐藏左右面板在封面页
+    .system-status-panel,
+    .event-logs-panel {
+      display: none;
+    }
+  }
+
+  .center-card-wrapper {
+    order: 1;
+  }
+
+  .center-card {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    min-height: 320px;
+    padding: 40px 24px;
+
+    .card-content {
+      .book-icon-wrapper {
+        margin-bottom: 20px;
+      }
+
+      .book-icon {
+        font-size: 48px;
+      }
+
+      .book-title {
+        font-size: 36px;
+      }
+
+      .book-subtitle {
+        font-size: 12px;
+        margin-bottom: 20px;
+      }
+
+      .book-desc {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .start-btn-wrapper {
+    order: 2;
+    margin-top: 24px;
+
+    .start-btn {
+      padding: 16px 40px;
+      font-size: 16px;
+    }
+  }
+
+  .bottom-tools {
+    order: 3;
+    margin-top: 20px;
+    flex-wrap: wrap;
+
+    .tool-btn {
+      padding: 10px 20px;
+      font-size: 12px;
+    }
+  }
+
+  // HUD 装饰简化
+  .hud-decoration {
+    .hud-side {
+      display: none;
+    }
+
+    .data-bars {
+      opacity: 0.15;
+    }
+
+    .ruler {
+      opacity: 0.1;
+    }
+  }
+}
+
+/* 手机横屏和中等移动设备 (768px 以下) */
+@media (max-width: 768px) {
+  .opening-form {
+    padding: 12px;
+  }
+
+  .book-container {
+    height: 95vh;
+    border-radius: 20px;
+  }
+
+  .cover-page {
+    gap: 16px;
+    padding: 24px 16px 16px;
+  }
+
+  .center-card {
+    min-height: 280px;
+    padding: 32px 20px;
+    border-radius: 20px;
+
+    .card-content {
+      .book-icon-wrapper {
+        margin-bottom: 16px;
+      }
+
+      .book-icon {
+        font-size: 42px;
+      }
+
+      .book-title {
+        font-size: 30px;
+      }
+
+      .book-subtitle {
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        margin-bottom: 16px;
+      }
+
+      .book-desc {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .start-btn-wrapper {
+    margin-top: 20px;
+
+    .start-btn {
+      padding: 14px 32px;
+      font-size: 15px;
+    }
+  }
+
+  .bottom-tools {
+    gap: 10px;
+
+    .tool-btn {
+      padding: 8px 16px;
+      font-size: 12px;
+      border-radius: 10px;
+    }
+  }
+
+  // HUD 进一步简化
+  .hud-decoration {
+    .corner-mark {
+      font-size: 8px;
+
+      &.top-left,
+      &.top-right,
+      &.bottom-left,
+      &.bottom-right {
+        &::before {
+          width: 20px;
+          height: 20px;
+        }
+      }
+    }
+
+    .hud-top {
+      gap: 10px;
+
+      .hud-line {
+        width: 60px;
+      }
+
+      .hud-label {
+        font-size: 9px;
+        letter-spacing: 0.2em;
+      }
+    }
+
+    .hud-bottom {
+      gap: 16px;
+
+      .data-blocks {
+        gap: 3px;
+
+        .data-block {
+          width: 6px;
+        }
+      }
+
+      .hud-range {
+        font-size: 9px;
+      }
+    }
+
+    .data-bars {
+      display: none;
+    }
+  }
+
+  // 页面内容调整
+  .page-content {
+    padding: 20px 16px;
+  }
+
+  .chapter-title {
+    font-size: 24px;
+
+    &::after {
+      width: 40px;
+      height: 2px;
+    }
+  }
+
+  .chapter-desc {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  // 确认页按钮调整
+  .cyber-start-btn {
+    min-width: 240px;
+    padding: 16px 28px;
+    font-size: 16px;
+  }
+
+  .confirm-presets-bar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px 20px;
+
+    .cyber-preset-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+/* 小屏手机 (480px 以下) */
+@media (max-width: 480px) {
+  .opening-form {
+    padding: 8px;
+  }
+
+  .book-container {
+    height: 96vh;
+    border-radius: 16px;
+  }
+
+  .cover-page {
+    gap: 12px;
+    padding: 20px 12px 12px;
+  }
+
+  .center-card {
+    min-height: 240px;
+    padding: 24px 16px;
+    border-radius: 16px;
+
+    .card-content {
+      .book-icon-wrapper {
+        margin-bottom: 12px;
+
+        .icon-glow {
+          inset: -12px;
+          filter: blur(12px);
+        }
+      }
+
+      .book-icon {
+        font-size: 36px;
+      }
+
+      .book-title {
+        font-size: 26px;
+      }
+
+      .book-subtitle {
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        margin-bottom: 12px;
+      }
+
+      .book-desc {
+        font-size: 12px;
+        letter-spacing: 0.05em;
+      }
+    }
+
+    .card-inner-border {
+      inset: 12px;
+      border-radius: 12px;
+
+      &::before {
+        inset: 12px;
+        border-radius: 8px;
+      }
+    }
+  }
+
+  .start-btn-wrapper {
+    margin-top: 16px;
+
+    .btn-pulse-ring {
+      display: none;
+    }
+
+    .start-btn {
+      padding: 12px 28px;
+      font-size: 14px;
+      border-radius: 40px;
+    }
+  }
+
+  .bottom-tools {
+    gap: 8px;
+
+    .tool-btn {
+      padding: 8px 14px;
+      font-size: 11px;
+      gap: 6px;
+
+      i {
+        font-size: 12px;
+      }
+    }
+  }
+
+  // HUD 最小化
+  .hud-decoration {
+    .corner-mark {
+      display: none;
+    }
+
+    .hud-top {
+      top: 12px;
+
+      .hud-line {
+        width: 40px;
+      }
+
+      .hud-label {
+        font-size: 8px;
+        letter-spacing: 0.15em;
+      }
+    }
+
+    .hud-bottom {
+      bottom: 12px;
+
+      .hud-range {
+        font-size: 8px;
+      }
+    }
+  }
+
+  // 页面头部简化
+  .page-header {
+    padding: 16px 20px;
+
+    .nav-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+
+      i {
+        font-size: 14px;
+      }
+    }
+
+    .page-number {
+      font-size: 11px;
+    }
+  }
+
+  .page-content {
+    padding: 16px 12px;
+  }
+
+  .chapter-title {
+    font-size: 22px;
+    margin-bottom: 6px;
+
+    &::after {
+      width: 32px;
+      bottom: -4px;
+    }
+  }
+
+  // 表单元素调整
+  .scene-card {
+    padding: 14px;
+
+    .scene-icon {
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .scene-name {
+      font-size: 14px;
+    }
+
+    .scene-desc {
+      font-size: 11px;
+    }
+  }
+
+  .rule-item {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .library-toolbar-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  // 确认页调整
+  .cyber-start-btn {
+    min-width: 200px;
+    padding: 14px 24px;
+    font-size: 15px;
+    border-radius: 14px;
+  }
+
+  // 底部按钮调整
+  .chronicle-clear-btn,
+  .theme-toggle {
+    height: 40px;
+    padding: 0 12px;
+  }
+
+  .theme-toggle {
+    width: 40px;
+  }
+}
+
+/* 超小屏手机 (360px 以下) */
+@media (max-width: 360px) {
+  .book-container {
+    border-radius: 12px;
+  }
+
+  .cover-page {
+    padding: 16px 10px 10px;
+  }
+
+  .center-card {
+    min-height: 200px;
+    padding: 20px 12px;
+
+    .card-content {
+      .book-icon {
+        font-size: 32px;
+      }
+
+      .book-title {
+        font-size: 22px;
+      }
+
+      .book-subtitle {
+        font-size: 9px;
+      }
+
+      .book-desc {
+        font-size: 11px;
+      }
+    }
+  }
+
+  .start-btn-wrapper .start-btn {
+    padding: 10px 24px;
+    font-size: 13px;
+  }
+
+  .bottom-tools {
+    .tool-btn {
+      padding: 6px 12px;
+      font-size: 10px;
+    }
+  }
+}
+
+/* 高度限制适配 (短屏幕) */
+@media (max-height: 700px) {
+  .book-container {
+    height: 94vh;
+  }
+
+  .cover-page {
+    padding-top: 20px;
+    padding-bottom: 16px;
+  }
+
+  .center-card {
+    min-height: auto;
+    padding: 24px 20px;
+
+    .card-content {
+      .book-icon-wrapper {
+        margin-bottom: 12px;
+      }
+
+      .book-title {
+        font-size: 28px;
+      }
+
+      .book-subtitle {
+        margin-bottom: 12px;
+      }
+    }
+  }
+
+  .start-btn-wrapper {
+    margin-top: 16px;
+  }
+}
+
+/* 超短屏幕 (600px 以下高度) */
+@media (max-height: 600px) {
+  .opening-form {
+    padding: 8px;
+  }
+
+  .book-container {
+    height: 96vh;
+  }
+
+  // 封面页改为横向滚动或压缩
+  .cover-page {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .center-card {
+    padding: 20px 16px;
+
+    .card-content {
+      .book-icon-wrapper {
+        margin-bottom: 8px;
+      }
+
+      .book-icon {
+        font-size: 32px;
+      }
+
+      .book-title {
+        font-size: 24px;
+      }
+
+      .book-subtitle {
+        margin-bottom: 8px;
+      }
+
+      .book-desc {
+        font-size: 11px;
+      }
+    }
+  }
+
+  // 底部工具栏横向排列
+  .bottom-tools {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 8px;
+
+    .tool-btn {
+      flex-shrink: 0;
+      padding: 6px 12px;
+      font-size: 11px;
+    }
+  }
+
+  // 隐藏部分HUD元素
+  .hud-decoration {
+    .hud-top,
+    .hud-bottom {
+      display: none;
+    }
+  }
+
+  // 页面内容可滚动
+  .page-content {
+    max-height: calc(96vh - 60px);
+    overflow-y: auto;
+  }
+}
+
+/* 原有响应式规则整合 */
 @media (max-width: 900px) {
   .opening-form {
     padding: 16px;
@@ -3581,10 +4278,12 @@ defineExpose({
 @media (max-width: 640px) {
   .scene-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .form-row {
     flex-direction: column;
+    gap: 8px;
   }
 
   .char-gender-select {
@@ -3594,13 +4293,65 @@ defineExpose({
   .theme-toggle {
     right: 12px;
     bottom: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
   }
 
   .chronicle-clear-btn {
     left: 12px;
     bottom: 12px;
     padding: 0 12px;
+    height: 40px;
     font-size: 12px;
+    border-radius: 12px;
+  }
+
+  // 确认页调整
+  .confirm-content {
+    padding: 20px 16px;
+  }
+
+  .summary-section {
+    margin: 12px 0 20px;
+    padding: 14px;
+  }
+
+  .summary-item {
+    padding: 8px 0;
+
+    .summary-label,
+    .summary-value {
+      font-size: 12px;
+    }
+  }
+
+  .confirm-actions {
+    padding: 20px 0;
+  }
+
+  // 弹窗适配
+  .chronicle-dialog-panel {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .opening-dialog-panel--wide {
+    max-width: calc(100vw - 32px);
+  }
+
+  .opening-dialog-list-item {
+    padding: 10px 12px;
+  }
+
+  .chronicle-dialog-actions {
+    gap: 8px;
+
+    .chronicle-dialog-btn {
+      min-width: 76px;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
   }
 }
 </style>
