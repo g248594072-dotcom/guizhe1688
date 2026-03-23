@@ -115,6 +115,16 @@ export function validateTags(messageContent: string): TagCheckResult[] {
       isClosed: true,
       message: `<maintext> 标签完整 (${maintextOpen} 对)`,
     };
+  } else if (maintextOpen === 2 && maintextClose === 1) {
+    // 正文开合2闭合1是正常的（预设中可能有一个示例）
+    maintext = {
+      tag: 'maintext',
+      isValid: true,
+      severity: 'ok',
+      isOpen: true,
+      isClosed: true,
+      message: `<maintext> 正常（${maintextOpen} 开 / ${maintextClose} 闭）。已按最后一对标签解析。`,
+    };
   } else if (isSuspiciousDuplicateOpenMismatch(maintextOpen, maintextClose)) {
     maintext = {
       tag: 'maintext',
@@ -165,6 +175,16 @@ export function validateTags(messageContent: string): TagCheckResult[] {
       isOpen: true,
       isClosed: true,
       message: `<option> 标签完整 (${optionOpen} 对)`,
+    };
+  } else if (optionOpen === optionClose + 1) {
+    // 选项开合必闭合多一个是正常的（预设中可能有格式示例）
+    option = {
+      tag: 'option',
+      isValid: true,
+      severity: 'ok',
+      isOpen: true,
+      isClosed: true,
+      message: `<option> 正常（${optionOpen} 开 / ${optionClose} 闭）。已按最后一对标签解析。`,
     };
   } else if (isSuspiciousDuplicateOpenMismatch(optionOpen, optionClose)) {
     option = {
@@ -217,6 +237,16 @@ export function validateTags(messageContent: string): TagCheckResult[] {
       isClosed: true,
       message: `<sum> 标签完整 (${sumOpen} 对)`,
     };
+  } else if (sumOpen === 2 && sumClose === 1) {
+    // 摘要开合2闭合1是正常的（预设中可能有一个示例）
+    sum = {
+      tag: 'sum',
+      isValid: true,
+      severity: 'ok',
+      isOpen: true,
+      isClosed: true,
+      message: `<sum> 正常（${sumOpen} 开 / ${sumClose} 闭）。已按最后一对标签解析。`,
+    };
   } else if (isSuspiciousDuplicateOpenMismatch(sumOpen, sumClose)) {
     sum = {
       tag: 'sum',
@@ -267,6 +297,16 @@ export function validateTags(messageContent: string): TagCheckResult[] {
       isOpen: true,
       isClosed: true,
       message: `<UpdateVariable> 标签完整 (${uvOpen} 对)`,
+    };
+  } else if (uvOpen === 2 && uvClose === 1) {
+    // 变量开合2闭合1是正常的（预设中可能有一个示例）
+    updateVariable = {
+      tag: 'UpdateVariable',
+      isValid: true,
+      severity: 'ok',
+      isOpen: true,
+      isClosed: true,
+      message: `<UpdateVariable> 正常（${uvOpen} 开 / ${uvClose} 闭）。已按最后一对标签解析。`,
     };
   } else if (isSuspiciousDuplicateOpenMismatch(uvOpen, uvClose)) {
     updateVariable = {
