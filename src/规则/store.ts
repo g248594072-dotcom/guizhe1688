@@ -10,11 +10,15 @@ import type { CharacterData, RuleData, RegionData } from './types';
 /**
  * 主数据存储
  * 使用 defineMvuDataStore 自动与酒馆变量同步
+ *
+ * 使用 `message_id: -1`（最新一条消息楼层）：同层界面 iframe 常挂在较早楼层（如 0），
+ * 而本项目的 MVU 随回合写在当前聊天**最后一条**；若用 `getCurrentMessageId()` 会长期读到空 `角色档案`。
+ * 见 `@types/function/variables.d.ts`：负数下标表示从末尾计，`-1` 为最新楼层。
  */
-export const useDataStore = defineMvuDataStore(
-  Schema,
-  { type: 'message', message_id: getCurrentMessageId() }
-);
+export const useDataStore = defineMvuDataStore(Schema, {
+  type: 'message',
+  message_id: -1,
+});
 
 /**
  * 获取角色列表（响应式）

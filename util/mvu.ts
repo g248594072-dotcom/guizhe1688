@@ -1,24 +1,42 @@
 import { StoreDefinition } from 'pinia';
 
+function normalizeMessageVariableOption(option: VariableOption): VariableOption {
+  const o = _.cloneDeep(option);
+  if (
+    o.type === 'message' &&
+    (o.message_id === undefined || o.message_id === 'latest')
+  ) {
+    o.message_id = -1;
+  }
+  return o;
+}
+
+/**
+ * @param variable_option 传入对象时与原先行为一致；传入 **函数** 时，在 Pinia store **首次初始化**（首次 `useDataStore()`）时再求值，
+ * 用于 `getCurrentMessageId()` 等必须在 iframe 与楼层绑定就绪后才能调用的场景（避免在 `store.ts` 模块顶层求值读到错误楼层）。
+ */
 export function defineMvuDataStore<T extends z.ZodObject>(
   schema: T,
-  variable_option: VariableOption,
+  variable_option: VariableOption | (() => VariableOption),
   additional_setup?: (data: Ref<z.infer<T>>) => void,
 ): StoreDefinition<`mvu_data.${string}`, { data: Ref<z.infer<T>> }> {
-  if (
-    variable_option.type === 'message' &&
-    (variable_option.message_id === undefined || variable_option.message_id === 'latest')
-  ) {
-    variable_option.message_id = -1;
-  }
+  const isDeferredOption = typeof variable_option === 'function';
+  const storeId = isDeferredOption
+    ? `mvu_data.message.__iframe_current__`
+    : `mvu_data.${_(variable_option as VariableOption)
+        .entries()
+        .sortBy(entry => entry[0])
+        .map(entry => entry[1])
+        .join('.')}`;
 
   return defineStore(
-    `mvu_data.${_(variable_option)
-      .entries()
-      .sortBy(entry => entry[0])
-      .map(entry => entry[1])
-      .join('.')}`,
+    storeId as `mvu_data.${string}`,
     errorCatched(() => {
+      const resolvedOption = normalizeMessageVariableOption(
+        isDeferredOption
+          ? (variable_option as () => VariableOption)()
+          : (variable_option as VariableOption),
+      );
       // 辅助函数：获取 stat_data，统一使用 MVU 格式，检测并修复双重嵌套
       function getStatData(variables: any): any {
         if (!variables) return {};
@@ -70,7 +88,7 @@ export function defineMvuDataStore<T extends z.ZodObject>(
         };
       }
 
-      const rawVariables = getVariables(variable_option);
+      const rawVariables = getVariables(resolvedOption);
       const statData = getStatData(rawVariables);
       const data = ref(
         schema.parse(statData, { reportInput: true }),
@@ -80,7 +98,7 @@ export function defineMvuDataStore<T extends z.ZodObject>(
       }
 
       useIntervalFn(() => {
-        const variables = getVariables(variable_option);
+        const variables = getVariables(resolvedOption);
         const stat_data = getStatData(variables);
         const result = schema.safeParse(stat_data);
         if (result.error) {
@@ -91,7 +109,7 @@ export function defineMvuDataStore<T extends z.ZodObject>(
             data.value = result.data;
           });
           if (!_.isEqual(stat_data, result.data)) {
-            updateVariablesWith(variables => setStatData(variables, result.data), variable_option);
+            updateVariablesWith(variables => setStatData(variables, result.data), resolvedOption);
           }
         }
       }, 2000);
@@ -108,7 +126,7 @@ export function defineMvuDataStore<T extends z.ZodObject>(
               data.value = result.data;
             });
           }
-          updateVariablesWith(variables => setStatData(variables, result.data), variable_option);
+          updateVariablesWith(variables => setStatData(variables, result.data), resolvedOption);
         },
         { deep: true },
       );

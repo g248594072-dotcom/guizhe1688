@@ -12,7 +12,8 @@ $(async () => {
   // ⭐ 关键：等待变量被正确设置（确保 schema 已解析）
   await waitUntil(() => {
     try {
-      const vars = getVariables({ type: 'message', message_id: getCurrentMessageId() });
+      // 与 store 一致：消息变量在「最新楼层」(-1)，与 iframe 所在楼层 (getCurrentMessageId) 可能不同
+      const vars = getVariables({ type: 'message', message_id: -1 });
       return _.has(vars, 'stat_data');
     } catch {
       return false;
