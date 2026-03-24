@@ -18,10 +18,19 @@
     <!-- 赛博朋克特效层 -->
     <ParallaxBackground />
     <TerminalSnippets />
-    <!-- Store 加载中 -->
-    <div v-if="!isStoreReady" class="store-loading">
-      <i class="fa-solid fa-circle-notch fa-spin"></i>
-      <span>加载数据中...</span>
+    <!-- MVU 变量缺失提示 -->
+    <div
+      v-if="showMvuMissingTip"
+      class="mvu-missing-tip"
+      :class="{ 'dark': isDarkMode, 'light': !isDarkMode }"
+    >
+      <div class="tip-content">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>MVU变量缺失</span>
+      </div>
+      <button class="close-btn" @click="onCloseMvuMissingTip" title="关闭提示">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
     <!-- Sidebar -->
     <nav class="sidebar">
@@ -776,6 +785,42 @@
       </div>
     </Transition>
   </Teleport>
+
+  <!-- MVU 缺失提示弹窗 -->
+  <Teleport to="body">
+    <Transition name="fade">
+      <div
+        v-if="showMvuMissingModal"
+        class="mvu-missing-modal-overlay"
+        @click.self="showMvuMissingModal = false"
+      >
+        <div
+          class="mvu-missing-modal"
+          :class="{ 'dark': isDarkMode, 'light': !isDarkMode }"
+        >
+          <div class="modal-header">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <h3>变量缺失提示</h3>
+          </div>
+
+          <div class="modal-body">
+            <p>目前 MVU 变量存在缺失，这可能导致界面无法正常工作。</p>
+            <p class="suggestion">建议操作：</p>
+            <ul>
+              <li>重试额外模型解析</li>
+              <li>重新处理变量</li>
+            </ul>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn-primary" @click="confirmMvuMissing">
+              确认了解
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -821,6 +866,8 @@ import { useDataStore } from './store';
 const gamePhase = ref<GamePhase>(GamePhase.OPENING);
 const isInitializing = ref(false);
 const isStoreReady = ref(false); // store 数据是否就绪
+const showMvuMissingTip = ref(false); // 是否显示 MVU 缺失提示
+const mvuMissingTipDismissed = ref(false); // 用户是否已关闭过提示（本次会话）
 const isGeneratingOpening = ref(false); // 开场白生成中（显示加载弹窗）
 const openingGenerationId = ref<string>(''); // 开场白生成的唯一标识符，用于停止生成
 /** 标签确认后：写入楼层、MVU 解析、开局第二 API 等进行中；不挡正文，仅顶栏提示并禁止发送 */
@@ -841,6 +888,22 @@ const isModalOpen = ref(false);
 const modalType = ref('');
 const modalPayload = ref<Record<string, any> | null>(null);
 const isDarkMode = ref(true);
+
+// MVU 缺失提示弹窗
+const showMvuMissingModal = ref(false);
+
+// 关闭 MVU 缺失提示
+function onCloseMvuMissingTip() {
+  showMvuMissingTip.value = false;
+  mvuMissingTipDismissed.value = true;
+  showMvuMissingModal.value = true;
+}
+
+// 确认 MVU 缺失提示
+function confirmMvuMissing() {
+  showMvuMissingModal.value = false;
+  console.log('✅ [App] 用户已确认 MVU 变量缺失提示');
+}
 
 // 布局/缩放设置（来自系统设置）
 // 默认 maxHeight: undefined 避免首帧硬编码 600 闪现；CSS 会用 auto 过渡，等数据水合后再固定
@@ -3237,14 +3300,20 @@ onMounted(() => {
     );
     if (hasData) {
       isStoreReady.value = true;
+      showMvuMissingTip.value = false;
       if (unwatch) {
         unwatch();
         unwatch = null;
       }
       console.log('✅ [App] Store 数据就绪');
       return true;
+    } else {
+      // 数据缺失，显示提示（除非用户已关闭）
+      if (!mvuMissingTipDismissed.value) {
+        showMvuMissingTip.value = true;
+      }
+      return false;
     }
-    return false;
   };
 
   // 立即检查一次
@@ -3321,6 +3390,265 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 // 导入赛博朋克全局样式
 @use './styles/cyber-effects' as *;
+
+// MVU 缺失提示条
+.mvu-missing-tip {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 9999;
+  max-width: 200px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: slideDown 0.3s ease;
+
+  .tip-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i {
+      font-size: 14px;
+    }
+  }
+
+  .close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  // 深色模式
+  &.dark {
+    background: rgba(234, 179, 8, 0.15);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    color: #fde68a;
+
+    i {
+      color: #fbbf24;
+    }
+
+    .close-btn {
+      color: #fde68a;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+    }
+  }
+
+  // 浅色模式
+  &.light {
+    background: rgba(251, 191, 36, 0.2);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    color: #92400e;
+
+    i {
+      color: #d97706;
+    }
+
+    .close-btn {
+      color: #92400e;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// MVU 缺失弹窗
+.mvu-missing-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+}
+
+.mvu-missing-modal {
+  width: 90%;
+  max-width: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: modalPop 0.3s ease;
+
+  &.dark {
+    background: #1a1a1f;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e4e4e7;
+
+    .modal-header {
+      background: rgba(234, 179, 8, 0.15);
+      border-bottom: 1px solid rgba(234, 179, 8, 0.2);
+
+      i {
+        color: #fbbf24;
+      }
+    }
+
+    .suggestion {
+      color: #fbbf24;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #a855f7, #06b6d4);
+      color: #fff;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+
+  &.light {
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #18181b;
+
+    .modal-header {
+      background: rgba(251, 191, 36, 0.2);
+      border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+
+      i {
+        color: #d97706;
+      }
+    }
+
+    .suggestion {
+      color: #d97706;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #a855f7, #06b6d4);
+      color: #fff;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mvu-missing-modal .modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+
+  i {
+    font-size: 20px;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+.mvu-missing-modal .modal-body {
+  padding: 20px;
+
+  p {
+    margin: 0 0 12px 0;
+    line-height: 1.6;
+    font-size: 14px;
+  }
+
+  .suggestion {
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 14px;
+    line-height: 1.8;
+
+    li {
+      margin-bottom: 4px;
+    }
+  }
+}
+
+.mvu-missing-modal .modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(128, 128, 128, 0.2);
+
+  button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.btn-primary {
+      background: linear-gradient(135deg, #a855f7, #06b6d4);
+      color: #fff;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+}
 
 .rule-modifier {
   display: flex;
