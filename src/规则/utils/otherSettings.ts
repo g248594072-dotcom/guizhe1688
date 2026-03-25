@@ -6,37 +6,45 @@
 import type { OtherSettings, InputActionMode } from '../types';
 import { DEFAULT_OTHER_SETTINGS } from '../types';
 import { useDataStore } from '../store';
+import { loadOtherSettings, saveOtherSettingsLocal } from './localSettings';
+
+function readOtherFromLocalStorage(): OtherSettings | null {
+  try {
+    return loadOtherSettings();
+  } catch {
+    return null;
+  }
+}
 
 /**
- * 获取其他设置
- * @returns 其他设置
+ * 获取其他设置（MVU `player.settings.other` 优先，否则回退 localStorage）
  */
 export function getOtherSettings(): OtherSettings {
+  const local = readOtherFromLocalStorage();
   try {
     const store = useDataStore();
     const player = (store.data as any).player;
     const settings = player?.settings?.other;
 
-    if (!settings) {
-      return { ...DEFAULT_OTHER_SETTINGS };
-    }
-
     return {
-      inputActionMode: settings.inputActionMode ?? DEFAULT_OTHER_SETTINGS.inputActionMode,
+      inputActionMode:
+        settings?.inputActionMode ??
+        local?.inputActionMode ??
+        DEFAULT_OTHER_SETTINGS.inputActionMode,
     };
   } catch (error) {
     console.warn('⚠️ [otherSettings] 获取其他设置失败，使用默认值:', error);
-    return { ...DEFAULT_OTHER_SETTINGS };
+    return local ?? { ...DEFAULT_OTHER_SETTINGS };
   }
 }
 
 /**
- * 保存其他设置
- * @param settings 设置对象
- * @returns 是否成功
+ * 保存其他设置（同时写入 MVU 与 localStorage，供 `getInputActionMode` 与界面一致）
  */
 export function saveOtherSettings(settings: OtherSettings): boolean {
   try {
+    saveOtherSettingsLocal(settings);
+
     const store = useDataStore();
 
     if (!(store.data as any).player) {

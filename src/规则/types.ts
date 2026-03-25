@@ -221,6 +221,7 @@ export interface SecondaryApiConfig {
   url: string;
   key: string;
   model: string;
+  /** 失败后的最大重试次数（0–10），总尝试次数 = 1 + 该值 */
   maxRetries: number;
   /** 为 true 时运行时从 SillyTavern 当前聊天补全（插头）读取 URL / 密钥 / 模型，不保存密钥到变量 */
   useTavernMainConnection?: boolean;

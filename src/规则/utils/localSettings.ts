@@ -7,6 +7,12 @@ import type { OutputMode, SecondaryApiConfig, InputActionMode } from '../types';
 import type { UiLayoutSettings } from './uiLayoutLimits';
 import { DEFAULT_SECONDARY_API_CONFIG } from './apiSettings';
 
+function clampSecondaryRetriesLoaded(n: unknown): number {
+  const x = Math.floor(Number(n));
+  if (Number.isNaN(x)) return DEFAULT_SECONDARY_API_CONFIG.maxRetries;
+  return Math.min(10, Math.max(0, x));
+}
+
 /** localStorage 键名 */
 const STORAGE_KEYS = {
   outputMode: 'rule_modifier_output_mode',
@@ -83,7 +89,7 @@ export function loadSecondaryApiConfig(): SecondaryApiConfig {
         url: parsed.url ?? DEFAULT_SECONDARY_API_CONFIG.url,
         key: parsed.key ?? DEFAULT_SECONDARY_API_CONFIG.key,
         model: parsed.model ?? DEFAULT_SECONDARY_API_CONFIG.model,
-        maxRetries: parsed.maxRetries ?? DEFAULT_SECONDARY_API_CONFIG.maxRetries,
+        maxRetries: clampSecondaryRetriesLoaded(parsed.maxRetries ?? DEFAULT_SECONDARY_API_CONFIG.maxRetries),
         useTavernMainConnection: parsed.useTavernMainConnection ?? DEFAULT_SECONDARY_API_CONFIG.useTavernMainConnection,
         tasks: {
           includeVariableUpdate: parsed.tasks?.includeVariableUpdate ?? DEFAULT_SECONDARY_API_CONFIG.tasks.includeVariableUpdate,

@@ -7,13 +7,21 @@ import type { OutputMode, SecondaryApiConfig } from '../types';
 import type { WorldbookEntry } from '../types';
 import { normalizeOpenAiUrl } from './openaiUrl';
 import { loadOutputMode, loadSecondaryApiConfig } from './localSettings';
+import { getTavernMainOpenAiEndpoint } from './tavernMainConnection';
+
+/** 失败后的最大重试次数（0–10） */
+export function clampSecondaryApiRetries(n: unknown): number {
+  const x = Math.floor(Number(n));
+  if (Number.isNaN(x)) return 2;
+  return Math.min(10, Math.max(0, x));
+}
 
 /** 无存档或未配置第二 API 时使用的默认：双 API 流程中的第二路走酒馆插头 */
 export const DEFAULT_SECONDARY_API_CONFIG: SecondaryApiConfig = {
   url: '',
   key: '',
   model: '',
-  maxRetries: 3,
+  maxRetries: 2,
   useTavernMainConnection: true,
   tasks: {
     includeVariableUpdate: true,
@@ -231,6 +239,48 @@ export function isSecondaryApiConfigured(config: SecondaryApiConfig | null | und
   return Boolean(String(config.url || '').trim());
 }
 
+const SECONDARY_SYSTEM_PROMPT = '你是一个专业的游戏变量更新助手。';
+
+/**
+ * 自定义 OpenAI 兼容端点：第二路一律走 `generateRaw` + `custom_api`（短上下文，不附带完整预设/聊天记录）。
+ */
+async function callSecondaryGenerateRawCustom(
+  userPrompt: string,
+  config: SecondaryApiConfig,
+  opts?: { includeSystem?: boolean },
+): Promise<string> {
+  if (typeof generateRaw !== 'function') {
+    throw new Error('generateRaw 不可用');
+  }
+  if (!String(config.key || '').trim()) {
+    throw new Error('第二 API Key 未配置');
+  }
+  const normalized = normalizeOpenAiUrl(config.url);
+  const modelTrim = String(config.model || '').trim();
+  const ordered: { role: 'system' | 'user'; content: string }[] = [];
+  if (opts?.includeSystem !== false) {
+    ordered.push({ role: 'system', content: SECONDARY_SYSTEM_PROMPT });
+  }
+  ordered.push({ role: 'user', content: userPrompt });
+  const genConfig: Parameters<typeof generateRaw>[0] = {
+    user_input: '',
+    should_stream: false,
+    should_silence: true,
+    max_chat_history: 0,
+    ordered_prompts: ordered,
+    custom_api: {
+      apiurl: normalized.base,
+      key: config.key,
+      source: 'openai',
+    },
+  };
+  if (modelTrim) {
+    genConfig.custom_api!.model = modelTrim;
+  }
+  const result = await generateRaw(genConfig);
+  return String(result ?? '');
+}
+
 /**
  * 测试「使用酒馆相同 API」时第二 API 是否可走通（经 `generateRaw`，不读取页面密钥）
  */
@@ -252,6 +302,44 @@ export async function testSecondaryApiTavernPlug(modelOverride?: string): Promis
   await generateRaw(cfg);
 }
 
+/**
+ * 连接测试：与第二 API 实际调用一致，均走 `generateRaw`（短提示、不注入完整预设/世界书/聊天记录）。
+ */
+export async function testSecondaryApiConnection(config: SecondaryApiConfig): Promise<void> {
+  if (config.useTavernMainConnection) {
+    await testSecondaryApiTavernPlug(config.model);
+    return;
+  }
+  if (!String(config.url || '').trim()) {
+    throw new Error('请填写 API URL');
+  }
+  if (!String(config.key || '').trim()) {
+    throw new Error('请填写 API Key');
+  }
+  await callSecondaryGenerateRawCustom('Reply with exactly one word: OK', config, { includeSystem: false });
+}
+
+/**
+ * 从当前配置拉取可用模型列表（OpenAI 兼容 `/v1/models`）。
+ */
+export async function fetchSecondaryApiModelList(config: SecondaryApiConfig): Promise<string[]> {
+  if (typeof getModelList !== 'function') {
+    throw new Error('getModelList 不可用');
+  }
+  if (config.useTavernMainConnection) {
+    const ep = getTavernMainOpenAiEndpoint();
+    if (!ep?.url) {
+      throw new Error('无法读取酒馆当前聊天补全 URL（请检查连接或关闭「使用酒馆相同 API」并手动填写）');
+    }
+    return getModelList({ apiurl: ep.url });
+  }
+  if (!String(config.url || '').trim()) {
+    throw new Error('请填写 API URL');
+  }
+  const normalized = normalizeOpenAiUrl(config.url);
+  return getModelList({ apiurl: normalized.base, key: config.key });
+}
+
 /** 第二 API 即将发起网络请求时派发，供界面显示横幅（`App.vue` 监听） */
 export const SECONDARY_API_START_EVENT = 'rule-modifier-secondary-api-start' as const;
 
@@ -270,11 +358,15 @@ export async function processWithSecondaryApi(
   maintext: string,
   config: SecondaryApiConfig,
 ): Promise<string> {
-  const maxRetries = config.maxRetries || 3;
+  const retryCount = clampSecondaryApiRetries(config.maxRetries);
+  const maxAttempts = 1 + retryCount;
   let lastError: Error | null = null;
 
   if (!config.useTavernMainConnection && !String(config.url || '').trim()) {
     throw new Error('第二 API URL 未配置');
+  }
+  if (!config.useTavernMainConnection && !String(config.key || '').trim()) {
+    throw new Error('第二 API Key 未配置');
   }
 
   // 获取当前变量数据
@@ -309,9 +401,9 @@ export async function processWithSecondaryApi(
     };
   }
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      console.log(`🔄 [apiSettings] 第二API调用尝试 ${attempt + 1}/${maxRetries}`);
+      console.log(`🔄 [apiSettings] 第二API调用尝试 ${attempt + 1}/${maxAttempts}`);
 
       // 构建完整提示词（包含变量数据+世界书内容+正文）
       const prompt = buildSecondaryApiPrompt(
@@ -323,10 +415,10 @@ export async function processWithSecondaryApi(
 
       notifySecondaryApiStart({ attempt: attempt + 1 });
 
-      // 调用第二API（酒馆插头走 generateRaw，不经 fetch 读密钥）
+      // 第二路一律 generateRaw：酒馆插头或自定义 URL+密钥+模型
       const response = config.useTavernMainConnection
         ? await callSecondaryApiViaGenerateRaw(prompt, config)
-        : await callSecondaryApi(prompt, config);
+        : await callSecondaryGenerateRawCustom(prompt, config);
 
       // 解析响应
       const updateVariable = extractUpdateVariable(response);
@@ -341,7 +433,7 @@ export async function processWithSecondaryApi(
       lastError = error as Error;
       console.warn(`⚠️ [apiSettings] 第二API调用失败 (尝试 ${attempt + 1}):`, error);
 
-      if (attempt < maxRetries - 1) {
+      if (attempt < maxAttempts - 1) {
         // 等待后重试
         await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
       }
@@ -349,7 +441,7 @@ export async function processWithSecondaryApi(
   }
 
   // 所有重试都失败了
-  throw new Error(`第二API调用失败 (${maxRetries}次重试): ${lastError?.message}`);
+  throw new Error(`第二API调用失败（${maxAttempts} 次尝试均失败）: ${lastError?.message}`);
 }
 
 /**
@@ -475,7 +567,7 @@ async function callSecondaryApiViaGenerateRaw(
     should_silence: true,
     max_chat_history: 0,
     ordered_prompts: [
-      { role: 'system', content: '你是一个专业的游戏变量更新助手。' },
+      { role: 'system', content: SECONDARY_SYSTEM_PROMPT },
       { role: 'user', content: prompt },
     ],
   };
@@ -484,47 +576,6 @@ async function callSecondaryApiViaGenerateRaw(
   }
   const result = await generateRaw(genConfig);
   return String(result ?? '');
-}
-
-/**
- * 调用第二API（自定义 URL + fetch）
- * @param prompt 提示词
- * @param config API配置
- * @returns API响应文本
- */
-async function callSecondaryApi(prompt: string, config: SecondaryApiConfig): Promise<string> {
-  if (!String(config.url || '').trim()) {
-    throw new Error('第二 API URL 未配置');
-  }
-  const normalized = normalizeOpenAiUrl(config.url);
-  const response = await fetch(normalized.chatCompletionsUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${config.key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: config.model || 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: '你是一个专业的游戏变量更新助手。' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 2000,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`API请求失败: HTTP ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  if (!data.choices?.[0]?.message?.content) {
-    throw new Error('API响应格式无效');
-  }
-
-  return data.choices[0].message.content;
 }
 
 /**

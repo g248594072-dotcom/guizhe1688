@@ -169,6 +169,13 @@
                 @update-worldbook="onUpdateWorldbook"
                 @layout-change="onLayoutChange"
               />
+              <div
+                v-else-if="activeTab === 'phone' || activeTab === 'world_life'"
+                class="phone-placeholder-panel"
+                :class="{ dark: isDarkMode, light: !isDarkMode }"
+              >
+                <p class="phone-placeholder-text">暂时未更新</p>
+              </div>
             </div>
           </Transition>
         </div>
@@ -1405,6 +1412,12 @@ const navItems = [
   { id: 'world_rules', icon: 'fa-solid fa-globe', label: '世界规则' },
   { id: 'regional_rules', icon: 'fa-solid fa-map', label: '区域规则' },
   { id: 'personal_rules', icon: 'fa-solid fa-user-circle', label: '个人规则' },
+  { id: 'phone', icon: 'fa-solid fa-mobile-screen-button', label: '手机' },
+  {
+    id: 'world_life',
+    icon: 'fa-solid fa-earth-americas',
+    label: '世界和生活的变化',
+  },
 ];
 
 const panelTitles: Record<string, string> = {
@@ -1412,6 +1425,8 @@ const panelTitles: Record<string, string> = {
   world_rules: '世界规则管理',
   regional_rules: '区域规则管理',
   personal_rules: '个人规则管理',
+  phone: '手机',
+  world_life: '世界和生活的变化',
   settings: '系统设置',
 };
 
@@ -4384,6 +4399,29 @@ onUnmounted(() => {
 
 .light .panel-content {
   background: #f4f4f5;
+}
+
+.phone-placeholder-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 200px;
+}
+
+.phone-placeholder-text {
+  font-size: calc(16px * var(--ui-scale, 1));
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.dark .phone-placeholder-text {
+  color: #a1a1aa;
+}
+
+.light .phone-placeholder-text {
+  color: #71717a;
 }
 
 .fade-enter-active,
