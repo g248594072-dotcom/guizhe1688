@@ -1,3 +1,6 @@
+/** 构建时由 webpack DefinePlugin 注入（git describe / commit 等） */
+declare const __APP_VERSION__: string;
+
 declare module '*?raw' {
   const content: string;
   export default content;

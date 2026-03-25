@@ -3,7 +3,7 @@ import HtmlInlineScriptWebpackPlugin from 'html-inline-script-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import _ from 'lodash';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-import { ChildProcess, exec, spawn } from 'node:child_process';
+import { ChildProcess, exec, execSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -19,6 +19,30 @@ import webpack from 'webpack';
 import WebpackObfuscator from 'webpack-obfuscator';
 const require = createRequire(import.meta.url);
 const HTMLInlineCSSWebpackPlugin = require('html-inline-css-webpack-plugin').default;
+
+const WEBPACK_ROOT = import.meta.dirname;
+
+/** 供前端显示：优先 CI 环境变量，否则 git describe，再否则短 commit，最后 dev */
+function getBuildVersion(): string {
+  const envRef =
+    process.env.GITHUB_REF_NAME?.trim() ||
+    process.env.CI_COMMIT_SHORT_SHA?.trim() ||
+    process.env.GIT_COMMIT_SHORT?.trim();
+  if (envRef) {
+    return envRef.length > 48 ? `${envRef.slice(0, 45)}…` : envRef;
+  }
+  try {
+    return execSync('git describe --tags --always --dirty', { encoding: 'utf8', cwd: WEBPACK_ROOT }).trim();
+  } catch {
+    try {
+      return execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: WEBPACK_ROOT }).trim();
+    } catch {
+      return 'dev';
+    }
+  }
+}
+
+const BUILD_VERSION = getBuildVersion();
 
 interface Config {
   port: number;
@@ -476,6 +500,7 @@ function parse_configuration(entry: Entry): (_env: any, argv: any) => webpack.Co
           __VUE_OPTIONS_API__: false,
           __VUE_PROD_DEVTOOLS__: process.env.CI !== 'true',
           __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
+          __APP_VERSION__: JSON.stringify(BUILD_VERSION),
         }),
       )
       .concat(

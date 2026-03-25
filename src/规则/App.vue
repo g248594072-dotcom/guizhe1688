@@ -41,7 +41,7 @@
       <header class="panel-header">
         <h1>
           系统设置
-          <span class="version-badge">C</span>
+          <span class="version-badge" :title="appBuildVersion">{{ appBuildVersion }}</span>
         </h1>
         <button type="button" class="close-btn" @click.stop="openingSettingsOpen = false">
           <i class="fa-solid fa-xmark"></i>
@@ -139,7 +139,7 @@
         <header class="panel-header">
           <h1>
             {{ panelTitle }}
-            <span v-if="activeTab === 'settings'" class="version-badge">C</span>
+            <span v-if="activeTab === 'settings'" class="version-badge" :title="appBuildVersion">{{ appBuildVersion }}</span>
           </h1>
           <button class="close-btn" @click.stop="activeTab = null">
             <i class="fa-solid fa-xmark"></i>
@@ -983,6 +983,9 @@ import type { UiLayoutSettings } from './utils/uiLayoutLimits';
 import { clampMainUiHeightPx } from './utils/uiLayoutLimits';
 import { loadUiLayout } from './utils/localSettings';
 import { useDataStore } from './store';
+
+/** 构建时注入，见 webpack DefinePlugin `__APP_VERSION__` */
+const appBuildVersion = __APP_VERSION__;
 
 // 游戏阶段管理
 const gamePhase = ref<GamePhase>(GamePhase.OPENING);
@@ -4318,14 +4321,19 @@ onUnmounted(() => {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: calc(12px * var(--ui-scale, 1));
+      font-size: calc(11px * var(--ui-scale, 1));
       font-weight: 600;
-      width: calc(20px * var(--ui-scale, 1));
-      height: calc(20px * var(--ui-scale, 1));
+      min-width: calc(20px * var(--ui-scale, 1));
+      max-width: min(200px, 40vw);
+      min-height: calc(20px * var(--ui-scale, 1));
+      padding: 0 calc(6px * var(--ui-scale, 1));
       border-radius: 4px;
       background: linear-gradient(135deg, #a855f7, #06b6d4);
       color: #fff;
       letter-spacing: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 
